@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -121,10 +122,17 @@ func main() {
 	// }
 
 	// Get videos from playlist
-	video_call := youtubeService.PlaylistItems.List([]string{"snippet"})
-	video_call = video_call.MaxResults(50)
-	video_call = video_call.PlaylistId("PLMsroFQMqFwI082s1_mf4oU9ILn-09PfM")
-	resp, err := video_call.Do()
+	// PLMsroFQMqFwI082s1_mf4oU9ILn-09PfM
+	scanner := bufio.NewScanner(os.Stdin)
+	fmt.Print("Playlist ID: ")
+	scanner.Scan()
+	playlistId := scanner.Text()
+	// fmt.Println(playlistId)
+
+	videoCall := youtubeService.PlaylistItems.List([]string{"snippet"})
+	videoCall = videoCall.MaxResults(50)
+	videoCall = videoCall.PlaylistId(playlistId)
+	resp, err := videoCall.Do()
 	handleError(err, "Couldn't get videos from playlist.")
 	for _, item := range resp.Items {
 		fmt.Println(item.Snippet.Title)
