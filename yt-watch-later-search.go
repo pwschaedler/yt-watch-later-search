@@ -110,13 +110,23 @@ func main() {
 	youtubeService, err := youtube.NewService(ctx, option.WithTokenSource(config.TokenSource(ctx, token)))
 	handleError(err, "Error creating YouTube client")
 
-	// The real stuff
-	call := youtubeService.Playlists.List([]string{"snippet"})
-	call = call.MaxResults(100)
-	call = call.Mine(true)
-	response, err := call.Do()
-	handleError(err, "Couldn't request playlists.")
-	for _, item := range response.Items {
+	// The real stuff - Get list of playlists
+	// call := youtubeService.Playlists.List([]string{"snippet"})
+	// call = call.MaxResults(100)
+	// call = call.Mine(true)
+	// response, err := call.Do()
+	// handleError(err, "Couldn't request playlists.")
+	// for _, item := range response.Items {
+	// 	fmt.Println(item.Snippet.Title)
+	// }
+
+	// Get videos from playlist
+	video_call := youtubeService.PlaylistItems.List([]string{"snippet"})
+	video_call = video_call.MaxResults(50)
+	video_call = video_call.PlaylistId("PLMsroFQMqFwI082s1_mf4oU9ILn-09PfM")
+	resp, err := video_call.Do()
+	handleError(err, "Couldn't get videos from playlist.")
+	for _, item := range resp.Items {
 		fmt.Println(item.Snippet.Title)
 	}
 }
