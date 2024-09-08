@@ -1,4 +1,4 @@
-module yt-watch-later-search
+module github.com/pwschaedler/yt-watch-later-search
 
 go 1.21.3
 
