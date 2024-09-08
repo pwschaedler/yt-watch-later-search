@@ -9,7 +9,7 @@ Requires a `client_secret.json` to use the YouTube Data API.
 go run ./cmd/yt-playlist-search
 
 # Compile the program for distribution
-go build -o bin/
+go build -o ./bin/ ./cmd/yt-playlist-search
 ./bin/yt-playlist-search
 
 # Install the program to your Go bin path
