@@ -4,6 +4,8 @@ A CLI tool to search and group YouTube videos from a playlist.
 
 Requires a `client_secret.json` to use the YouTube Data API.
 
+**In the new version, requires environment variables `YTAPI_CLIENT_ID` and `YTAPI_CLIENT_SECRET`.**
+
 ```sh
 # Run the program while developing
 go run ./cmd/yt-playlist-search
