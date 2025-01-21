@@ -2,9 +2,7 @@
 
 A CLI tool to search and group YouTube videos from a playlist.
 
-Requires a `client_secret.json` to use the YouTube Data API.
-
-**In the new version, requires environment variables `YTAPI_CLIENT_ID` and `YTAPI_CLIENT_SECRET`.**
+Requires a Google client secret to use the YouTube Data API. This can be generated from the Google Cloud Console. Create a project to use with this tool. Under "APIs & Services", click "Credentials". Click "Create Credentials", and choose "OAuth client ID". Choose application type "Desktop", and the name doesn't matter. Take the provided Client ID and Client secret and use them with environment variables `YTAPI_CLIENT_ID` and `YTAPI_CLIENT_SECRET`, respectively.
 
 ```sh
 # Run the program while developing
@@ -21,11 +19,14 @@ go install
 go test
 ```
 
-If the auth token doesn't seem to be working, try the following.
+## Configuration
 
-```sh
-rm ~/.credentials/youtube-go-quickstart.json
-```
+The following environment variables can be used to configure the tool.
+
+* `YTAPI_CLIENT_ID`: Client ID provided by Google Cloud Console.
+* `YTAPI_CLIENT_SECRET`: Client secret provided by Google Cloud Console.
+* `YTPS_PLAYLIST_ID`: Default playlist ID to search.
+* `YTPS_VERBOSE`: Enables logging when non-empty.
 
 ## Planned Features
 
