@@ -24,25 +24,24 @@ func main() {
 	youtubeService := ytsearch.GetYouTubeService()
 	log.Println("Authenticated.")
 	log.Printf("Getting videos from playlist ID: %v\n", args.PlaylistId)
-	videos := ytsearch.GetPlaylistVideos(youtubeService, args.PlaylistId)
+	playlistVideos := ytsearch.GetPlaylistVideos(youtubeService, args.PlaylistId)
 
-	// Example: Search for RuneScape videos, sorted by publish date ascending
 	log.Printf("Searching for videos with query: %v\n", args.Query)
-	rsVideos := []ytsearch.Video{}
+	videos := []ytsearch.Video{}
 
-	for _, video := range videos {
+	for _, video := range playlistVideos {
 		if strings.Contains(strings.ToLower(video.Title), args.Query) ||
 			strings.Contains(strings.ToLower(video.Description), args.Query) {
-			rsVideos = append(rsVideos, video)
+			videos = append(videos, video)
 		}
 	}
 
-	sort.Slice(rsVideos, func(i, j int) bool {
-		return rsVideos[i].DatePublished.Before(rsVideos[j].DatePublished)
+	sort.Slice(videos, func(i, j int) bool {
+		return videos[i].DatePublished.Before(videos[j].DatePublished)
 	})
 
-	writeResults(&rsVideos)
-	log.Printf("Results: %v\n", len(rsVideos))
+	writeResults(&videos)
+	log.Printf("Results: %v\n", len(videos))
 }
 
 func writeResults(videos *[]ytsearch.Video) {
@@ -50,11 +49,12 @@ func writeResults(videos *[]ytsearch.Video) {
 	fmt.Fprintf(w, "%v\t%v\t%v\t%v\n",
 		"PUBLISHED", "CHANNEL", "TITLE", "LINK")
 	for _, video := range *videos {
-		fmt.Fprintf(w, "%v\t%v\t%v\thttps://www.youtube.com/watch?v=%v\n",
+		link := fmt.Sprintf("https://www.youtube.com/watch?v=%v", video.VideoId)
+		fmt.Fprintf(w, "%v\t%v\t%v\t%v\n",
 			video.DatePublished.Format(time.DateOnly),
 			video.Channel,
 			video.Title,
-			video.VideoId)
+			link)
 	}
 	w.Flush()
 
