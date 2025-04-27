@@ -17,7 +17,9 @@ import (
 )
 
 func GetYouTubeService() *youtube.Service {
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	config := oauth2.Config{
 		ClientID:     os.Getenv("YTAPI_CLIENT_ID"),
 		ClientSecret: os.Getenv("YTAPI_CLIENT_SECRET"),
@@ -33,10 +35,17 @@ func GetYouTubeService() *youtube.Service {
 	var authCode string
 	http.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
 		authCode = r.FormValue("code")
-		srv.Shutdown(ctx)
+		// The browser doesn't allow us to close the tab for the user
+		w.Write([]byte("You may now close this tab."))
+		cancel()
 	})
-	srv.ListenAndServe()
 
+	go func() {
+		srv.ListenAndServe()
+	}()
+	<-ctx.Done()
+
+	ctx = context.Background()
 	token, err := config.Exchange(ctx, authCode)
 	if err != nil {
 		log.Fatalln("Failed to retrieve auth token.")
