@@ -17,9 +17,46 @@ import (
 )
 
 func GetYouTubeService() *youtube.Service {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	token := ReadToken()
 
+	if false {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		config := oauth2.Config{
+			ClientID:     os.Getenv("YTAPI_CLIENT_ID"),
+			ClientSecret: os.Getenv("YTAPI_CLIENT_SECRET"),
+			Endpoint:     google.Endpoint,
+			RedirectURL:  "http://localhost:8080/callback",
+			Scopes:       []string{youtube.YoutubeReadonlyScope},
+		}
+
+		authURL := config.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
+		browser.OpenURL(authURL)
+
+		srv := &http.Server{Addr: ":8080"}
+		var authCode string
+		http.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
+			authCode = r.FormValue("code")
+			// The browser doesn't allow us to close the tab for the user
+			w.Write([]byte("You may now close this tab."))
+			cancel()
+		})
+
+		go func() {
+			srv.ListenAndServe()
+		}()
+		<-ctx.Done()
+
+		ctx = context.Background()
+		token, err := config.Exchange(ctx, authCode)
+		if err != nil {
+			log.Fatalln("Failed to retrieve auth token.")
+		}
+		WriteToken(token)
+	}
+
+	ctx := context.Background()
 	config := oauth2.Config{
 		ClientID:     os.Getenv("YTAPI_CLIENT_ID"),
 		ClientSecret: os.Getenv("YTAPI_CLIENT_SECRET"),
@@ -28,30 +65,8 @@ func GetYouTubeService() *youtube.Service {
 		Scopes:       []string{youtube.YoutubeReadonlyScope},
 	}
 
-	authURL := config.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
-	browser.OpenURL(authURL)
-
-	srv := &http.Server{Addr: ":8080"}
-	var authCode string
-	http.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
-		authCode = r.FormValue("code")
-		// The browser doesn't allow us to close the tab for the user
-		w.Write([]byte("You may now close this tab."))
-		cancel()
-	})
-
-	go func() {
-		srv.ListenAndServe()
-	}()
-	<-ctx.Done()
-
-	ctx = context.Background()
-	token, err := config.Exchange(ctx, authCode)
-	if err != nil {
-		log.Fatalln("Failed to retrieve auth token.")
-	}
-
 	service, err := youtube.NewService(ctx, option.WithTokenSource(config.TokenSource(ctx, token)))
+	log.Printf("Updated token: %v\n", token)
 	if err != nil {
 		log.Fatalln("Failed to create YouTube client.")
 	}

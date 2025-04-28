@@ -20,6 +20,9 @@ func main() {
 	}
 	args := parseArgs()
 
+	log.Println("Testing database connection ...")
+	ytsearch.DbConn()
+
 	log.Println("Getting YouTube service ...")
 	youtubeService := ytsearch.GetYouTubeService()
 	log.Println("Authenticated.")
@@ -57,5 +60,4 @@ func writeResults(videos *[]ytsearch.Video) {
 			link)
 	}
 	w.Flush()
-
 }
