@@ -6,10 +6,12 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/pkg/browser"
+	"github.com/sosodev/duration"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/option"
@@ -83,20 +85,65 @@ func GetPlaylistVideos(service *youtube.Service, playlistId string) []Video {
 		playlistItems = append(playlistItems, resp...)
 	}
 
-	videos := []Video{}
+	publicPlaylistItems := []*youtube.PlaylistItem{}
 	for _, item := range playlistItems {
-		video, err := parsePlaylistVideoInfo(item)
+		if item.Status.PrivacyStatus == "public" || item.Status.PrivacyStatus == "unlisted" {
+			publicPlaylistItems = append(publicPlaylistItems, item)
+		}
+	}
+
+	videoIds := []string{}
+	for _, item := range publicPlaylistItems {
+		videoIds = append(videoIds, item.ContentDetails.VideoId)
+	}
+	fmt.Printf("Video IDs length: %d\n", len(videoIds))
+	durations := GetVideoDurations(service, videoIds)
+
+	videos := []Video{}
+	fmt.Printf("Playlist items length: %d\n", len(publicPlaylistItems))
+	fmt.Printf("Durations length: %d\n", len(durations))
+	for idx, item := range publicPlaylistItems {
+		d := durations[idx]
+		video, err := parsePlaylistVideoInfo(item, d)
 		if err != nil {
 			log.Printf("Skipping, %v\n", err)
 			continue
 		}
 		videos = append(videos, video)
 	}
+
 	return videos
 }
 
-func GetVideoDetails(service *youtube.Service, videoIds []string) {
-	// todo
+// Makes API requests to get details about individual videos that aren't
+// available from the PlaylistItems. This API call doesn't support paging or
+// responses with more than 50 items, so we have to manually chunk the IDs and
+// only make requests with up to 50 IDs.
+func GetVideoDurations(service *youtube.Service, videoIds []string) []time.Duration {
+	videoCall := service.Videos.List([]string{"contentDetails"})
+	videoItems := []*youtube.Video{}
+	maxItems := 50 // Enforced by the API
+	for videoIdChunk := range slices.Chunk(videoIds, maxItems) {
+		videoCall = videoCall.Id(strings.Join(videoIdChunk, ","))
+		resp, err := videoCall.Do()
+		if err != nil {
+			log.Fatalln("Couldn't get video details.")
+		}
+		videoItems = append(videoItems, resp.Items...)
+	}
+
+	durations := []time.Duration{}
+	for _, item := range videoItems {
+		rawDuration := item.ContentDetails.Duration
+		dd, err := duration.Parse(rawDuration)
+		if err != nil {
+			log.Fatalln("Couldn't parse ISO 8601 duration")
+		}
+		d := dd.ToTimeDuration()
+		durations = append(durations, d)
+	}
+
+	return durations
 }
 
 func requestPlaylistChunk(
@@ -104,7 +151,7 @@ func requestPlaylistChunk(
 	playlistId string,
 	nextPageToken string,
 ) ([]*youtube.PlaylistItem, string) {
-	videoCall := service.PlaylistItems.List([]string{"contentDetails,snippet"})
+	videoCall := service.PlaylistItems.List([]string{"contentDetails,snippet,status"})
 	videoCall = videoCall.MaxResults(50)
 	videoCall = videoCall.PlaylistId(playlistId)
 	videoCall = videoCall.PageToken(nextPageToken)
@@ -115,24 +162,8 @@ func requestPlaylistChunk(
 	return resp.Items, resp.NextPageToken
 }
 
-func requestVideoChunk(service *youtube.Service, videoIds []string, nextPageToken string) ([]*youtube.Video, string) {
-	videoCall := service.Videos.List([]string{"contentDetails"})
-	videoCall = videoCall.MaxResults(50)
-	videoCall = videoCall.Id(strings.Join(videoIds, ","))
-	videoCall = videoCall.PageToken(nextPageToken)
-	resp, err := videoCall.Do()
-	if err != nil {
-		log.Fatalln("Couldn't get video details.")
-	}
-	return resp.Items, resp.NextPageToken
-}
-
-func parsePlaylistVideoInfo(item *youtube.PlaylistItem) (Video, error) {
+func parsePlaylistVideoInfo(item *youtube.PlaylistItem, duration time.Duration) (Video, error) {
 	var err error
-	// if item.Status.PrivacyStatus == "private" {
-	// 	err = fmt.Errorf("skipping privated video")
-	// 	return Video{}, err
-	// }
 
 	title := item.Snippet.Title
 	stringPublished := item.ContentDetails.VideoPublishedAt
@@ -154,6 +185,7 @@ func parsePlaylistVideoInfo(item *youtube.PlaylistItem) (Video, error) {
 		Title:         title,
 		Channel:       item.Snippet.VideoOwnerChannelTitle,
 		Description:   item.Snippet.Description,
+		Duration:      duration,
 		DatePublished: datePublished,
 		DateAdded:     dateAdded,
 	}, nil

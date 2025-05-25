@@ -7,6 +7,7 @@ toolchain go1.23.4
 require (
 	github.com/adrg/xdg v0.5.3
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
+	github.com/sosodev/duration v1.3.1
 	golang.org/x/oauth2 v0.25.0
 	google.golang.org/api v0.216.0
 	modernc.org/sqlite v1.37.0

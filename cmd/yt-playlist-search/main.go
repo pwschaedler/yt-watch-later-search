@@ -40,7 +40,8 @@ func main() {
 	}
 
 	sort.Slice(videos, func(i, j int) bool {
-		return videos[i].DatePublished.Before(videos[j].DatePublished)
+		// return videos[i].DatePublished.Before(videos[j].DatePublished)
+		return videos[i].Duration < videos[j].Duration
 	})
 
 	writeResults(&videos)
@@ -49,14 +50,15 @@ func main() {
 
 func writeResults(videos *[]ytsearch.Video) {
 	w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, '\t', 0)
-	fmt.Fprintf(w, "%v\t%v\t%v\t%v\n",
-		"PUBLISHED", "CHANNEL", "TITLE", "LINK")
+	fmt.Fprintf(w, "%v\t%v\t%v\t%v\t%v\n",
+		"PUBLISHED", "CHANNEL", "TITLE", "DURATION", "LINK")
 	for _, video := range *videos {
 		link := fmt.Sprintf("https://www.youtube.com/watch?v=%v", video.VideoId)
-		fmt.Fprintf(w, "%v\t%v\t%v\t%v\n",
+		fmt.Fprintf(w, "%v\t%v\t%v\t%v\t%v\n",
 			video.DatePublished.Format(time.DateOnly),
 			video.Channel,
 			video.Title,
+			video.Duration,
 			link)
 	}
 	w.Flush()
