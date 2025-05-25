@@ -48,7 +48,7 @@ func main() {
 }
 
 func writeResults(videos *[]ytsearch.Video) {
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, '\t', 0)
 	fmt.Fprintf(w, "%v\t%v\t%v\t%v\n",
 		"PUBLISHED", "CHANNEL", "TITLE", "LINK")
 	for _, video := range *videos {
